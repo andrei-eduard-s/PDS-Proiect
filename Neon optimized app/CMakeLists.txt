@@ -1,34 +1,48 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(FingerprintProcessing VERSION 1.0)
+project(FingerprintProcessing VERSION 1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
-# Verificam daca sistemul este pe arhitectura ARM64 (Raspberry Pi 4B cu Raspberry Pi OS pe 64-bit)
+# Detectam arhitectura
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-    # Activam optimizarile NEON pentru ARM64
-    add_compile_options(-O3 -march=armv8-a+simd -ftree-vectorize -funsafe-math-optimizations)
+    message(STATUS "Compilare pentru ARM64 cu NEON si OpenMP activat")
+    add_compile_options(
+        -O3
+        -march=armv8-a+simd
+        -ftree-vectorize
+        -funsafe-math-optimizations
+        -fopenmp
+    )
+    set(OPENMP_LIB_NAMES "gomp")
+    set(OPENMP_FOUND TRUE)
 
-    # Mesaj informativ pentru debugging
-    message(STATUS "Compilare pentru ARM64 cu NEON activat")
+    # Find OpenMP
+    find_package(OpenMP REQUIRED)
 else()
-    # Daca nu este ARM64, foloseste doar optimizari generale pentru alte platforme
-    add_compile_options(-O3 -march=native)
+    message(STATUS "Compilare pentru arhitectura non-ARM64 cu optimizari native si OpenMP")
+    add_compile_options(-O3 -march=native -fopenmp)
+    find_package(OpenMP REQUIRED)
 endif()
 
 # Cautam OpenCV
 find_package(OpenCV REQUIRED)
 
-# Cream executabilul
 add_executable(fingerprint_processing src/main.cpp)
 
-# Le legam pe OpenCV si altele
-target_link_libraries(fingerprint_processing PRIVATE ${OpenCV_LIBS})
-target_link_libraries(fingerprint_processing PRIVATE stdc++fs)
-
-# Setam caile de includere pentru OpenCV
 target_include_directories(fingerprint_processing PRIVATE ${OpenCV_INCLUDE_DIRS})
 
-# Daca esti pe ARM64, se asigura ca NEON este folosit corect
-target_compile_options(fingerprint_processing PRIVATE -march=armv8-a+simd)
+target_link_libraries(fingerprint_processing PRIVATE
+    ${OpenCV_LIBS}
+    OpenMP::OpenMP_CXX
+)
+
+# Setam optiuni specifice targetului (dublu cu -march=armv8-a+simd pentru siguranta)
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    target_compile_options(fingerprint_processing PRIVATE
+        -march=armv8-a+simd
+        -ftree-vectorize
+        -funsafe-math-optimizations
+    )
+endif()

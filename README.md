@@ -2,22 +2,40 @@
 
 ### Descrierea proiectului
 
-Acest proiect are ca scop dezvoltarea unei aplicații practice de procesare digitală a semnalelor, concentrată pe analiza și extragerea trasăturilor esențiale din imagini cu amprente. 
+Acest proiect are ca scop dezvoltarea unei aplicații de procesare digitală a imaginilor, concentrată pe extragerea trasăturilor esențiale din amprente. Implementarea a fost realizată pe un Raspberry Pi 4B, care permite accelerarea algoritmilor cu instrucțiuni SIMD (Neon) disponibile pe arhitectura ARM.
 
-Folosind un Raspberry Pi 4B – un CPU ARM echipat cu extensii Neon pentru DSP – se demonstrează utilizarea tehnicilor de optimizare specifice prelucrărilor de semnale prin accelerarea algoritmilor cu instrucțiuni SIMD (Neon).
+### Pipeline-ul de prelucrare
 
-#### Pipeline-ul de prelucrare implementat include următoarele etape:
+1. **Preprocesare**: CLAHE și binarizare adaptivă.
+2. **Skeletonizare**: Algoritmul Zhang-Suen pentru subțiere.
+3. **Extragere minutiae**: Detectarea terminațiilor și bifurcațiilor prin metoda crossing number.
+4. **Vizualizare**: Imagine finală cu marcaje colorate pentru minutiae.
 
-1. **Preprocesare**: Îmbunătățirea contrastului folosind Contrast Limited Adaptive Histogram Equalization (CLAHE) și aplicarea unui Adaptive Threshold care păstrează detaliile fine și curbele amprentei.
-2. **Skeletonizare**: Reducerea imaginii binare la un "roadmap" al ridurilor folosind algoritmul de thinning Zhang-Suen, astfel încât forma de bază a amprentei să fie păstrată.
-3. **Extragerea minutiae-lor**: Identificarea punctelor caracteristice (terminații și bifurcații) folosind metoda crossing number, cu rezultate vizuale evidențiate prin marcaje colorate (verde pentru ending și roșu pentru bifurcație).
+### Dataset
 
-### Dataset folosit pentru testare
+- Sursă: https://www.kaggle.com/datasets/ruizgara/socofing  
+- Dataset cu amprente reale și sintetice, utilizat pentru testare și validare.
 
-- Sursă: https://www.kaggle.com/datasets/ruizgara/socofing
+### Rezumatul optimizărilor și rezultatelor de performanță
 
-Pentru evaluarea performanței algoritmului, a fost utilizat un set de date extins, alcătuit din imagini cu amprente, provenind dintr-o sursă web pentru cercetare. Dataset-ul include amprente de o diversitate ridicată. Acest lucru ajută la validarea procesului de prelucrare și la comparațiile de performanță între implementarea de bază și cea optimizată.
+Pentru accelerarea procesării, algoritmii de skeletonizare și extragere a caracteristicilor au fost optimizați folosind instrucțiuni SIMD NEON, care permit procesarea paralelă a pixelilor. Această optimizare a fost activată prin compilare cu suport NEON și optimizare maximă (`-mfpu=neon -O3`).
 
-### Accelerarea performanței
+Testele au fost realizate pe același input, cu 500 de execuții consecutive pentru fiecare variantă:
 
-Un aspect important al proiectului este măsurarea și compararea timpilor de execuție a întregului proces pe acest set de amprente, atât înainte, cât și după aplicarea optimizărilor bazate pe extensiile Neon. Această analiză de performanță demonstrează beneficiile accelerării algoritmilor de prelucrare a semnalelor pe un CPU ARM cu suport DSP.
+| Variantă            | Timp minim | Timp maxim |
+|---------------------|------------|------------|
+| Optimizată NEON     | 6.72 s     | 7.18 s     |
+| Neoptimizată        | 43.87 s    | 44.35 s    |
+
+Accelerarea a rezultat într-o reducere de peste 6 ori a timpului de execuție.
+
+### Output final
+
+- Imagine finală cu amprenta skeletonizată și marcajele minutiae
+- Fișiere de ieșire: `output_images/result.png` și `logs/result.txt`
+
+### Bibliografie
+
+- [SOCOFing Dataset - Kaggle](https://www.kaggle.com/datasets/ruizgara/socofing)  
+- [Zhang, T. Y., & Suen, C. Y. (1984). A fast parallel algorithm for thinning digital patterns. *Communications of the ACM*, 27(3), 236–239.](https://doi.org/10.1145/357994.358023)
+- [OpenCV Documentation](https://docs.opencv.org/)
